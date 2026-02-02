@@ -4210,6 +4210,8 @@ Helper functions
 * `math.factorial(x)`: returns the factorial of `x`
 * `math.round(x)`: Returns `x` rounded to the nearest integer.
     * At a multiple of 0.5, rounds away from zero.
+* `math.isfinite(x)`: Returns `true` if `x` is neither an infinity nor a NaN,
+  and `false` otherwise.
 * `string.split(str, separator, include_empty, max_splits, sep_is_pattern)`
     * `separator`: string, cannot be empty, default: `","`
     * `include_empty`: boolean, default: `false`
@@ -5699,8 +5701,13 @@ Utilities
     * Works regardless of whether the mod has been loaded yet.
     * Useful for loading additional `.lua` modules or static data from a mod,
   or checking if a mod is enabled.
-* `core.get_modnames()`: returns a list of enabled mods, sorted alphabetically.
-    * Does not include disabled mods, even if they are installed.
+* `core.get_modnames([load_order])`:
+    * Returns a list of the mods' names that are loaded or are yet to be loaded
+      during startup.
+    * `load_order` defines the order of the names (optional, default `false`)
+        * Available since 5.16.0
+        * `true`: Sorted according to the load order.
+        * `false`: Sorted alphabetically.
 * `core.get_game_info()`: returns a table containing information about the
   current game. Note that other meta information (e.g. version/release number)
   can be manually read from `game.conf` in the game's root directory.
@@ -5852,6 +5859,8 @@ Utilities
       -- Item definition fields `inventory_image`, `inventory_overlay`, `wield_image`
       -- and `wield_overlay` accept a table containing animation definitions. (5.15.0)
       item_image_animation = true,
+      -- `core.get_modnames`' parameter `load_order` (5.16.0)
+      get_modnames_load_order = true,
   }
   ```
 
@@ -6269,17 +6278,18 @@ Call these functions only at load time!
       handlers will be prevented.
 * `core.register_on_player_receive_fields(function(player, formname, fields))`
     * Called when the server received input from `player`.
-      Specifically, this is called on any of the
-      following events:
-          * a button was pressed,
-          * Enter was pressed while the focus was on a text field
-          * a checkbox was toggled,
-          * something was selected in a dropdown list,
-          * a different tab was selected,
-          * selection was changed in a textlist or table,
-          * an entry was double-clicked in a textlist or table,
-          * a scrollbar was moved, or
-          * the form was actively closed by the player.
+      Specifically, this is called on any of the following events:
+        * a button was pressed,
+        * Enter was pressed while the focus was on a text field
+        * a checkbox was toggled,
+        * something was selected in a dropdown list,
+        * a different tab was selected,
+        * selection was changed in a textlist or table,
+        * an entry was double-clicked in a textlist or table,
+        * a scrollbar was moved, or
+        * the form was actively closed by the player.
+    * This is not called for node metadata formspecs. These use the callback
+      `on_receive_fields` specified in the node definition.
     * `formname` is the name passed to `core.show_formspec`.
       Special case: The empty string refers to the player inventory
       (the formspec set by the `set_inventory_formspec` player method).
@@ -10529,8 +10539,9 @@ Used by `core.register_node`.
     on_receive_fields = function(pos, formname, fields, sender),
     -- fields = {name1 = value1, name2 = value2, ...}
     -- formname should be the empty string; you **must not** use formname.
-    -- Called when an UI form (e.g. sign text input) returns data.
-    -- See core.register_on_player_receive_fields for more info.
+    -- Called when a node metadata formspec is present and data is returned.
+    -- See core.register_on_player_receive_fields for more info regarding
+    -- `formname` and `fields`.
     -- default: nil
 
     allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player),
